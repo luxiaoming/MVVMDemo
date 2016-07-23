@@ -1,7 +1,13 @@
 package com.xm.mvvmdemo.Model;
 
-public class User {
+import android.databinding.BaseObservable;
+import android.databinding.Bindable;
 
+import com.xm.mvvmdemo.BR;
+
+public class User extends BaseObservable{
+
+    @Bindable
     private String name;
 
     public User() {
@@ -18,5 +24,6 @@ public class User {
 
     public void setName(String name) {
         this.name = name;
+        notifyPropertyChanged(BR.name);
     }
 }
