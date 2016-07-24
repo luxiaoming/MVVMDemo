@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">MVVMdemo</string>
     <string name="action_settings">Settings</string>
+
+
+    
+    <attr name="age" format="integer"></attr>
+
+    
 </resources>
