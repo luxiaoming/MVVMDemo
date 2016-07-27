@@ -4,6 +4,7 @@ import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
+import com.xm.mvvmdemo.Component.MyComponent;
 import com.xm.mvvmdemo.Model.User;
 import com.xm.mvvmdemo.databinding.ActivityMainBinding;
 
@@ -18,7 +19,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         //
         final ActivityMainBinding binding = DataBindingUtil.setContentView(
-                this, R.layout.activity_main);
+                this, R.layout.activity_main,new MyComponent());
+
+
         final User user = new User();
 
 
