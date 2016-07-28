@@ -212,5 +212,84 @@ so，我们看步骤：
 
 6代码位置
 https://github.com/luxiaoming/MVVMDemo
+![](http://upload-images.jianshu.io/upload_images/1603789-06ca8c03230bf5c3?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+android MVVM开发模式（四）
+上节我们讲了自定义的@BindingAdapter，来扩展属性功能的时候，第一步添加了一个自定义属性这个其实是多余的。（我当时按照自定义view属性去做了，其实data-binding是不用这个的，它的实现原理是找到标记为@BindingAdapter对应属性之后，依据这个函数生成代码即可，这个属性在真正的xml里面，是会去掉的。）
+这个是怎么发现的呢？
+在继续思考@BindingAdapter的定义时候发现的。因为我们标记的时候，后面的参数可能是任意结构的，而本身属性里面标记的类型是有限的，从这里发现这个问题的。
+小插曲 说完了。
+我们上一节说了怎么玩@BindingAdapter，我们再来说下它是做什么的
+通过标记一个静态方法为@BindingAdapter，标记附加值为对应属性。
 
-![](http://upload-images.jianshu.io/upload_images/1603789-6f4f3e254f081458?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+静态方法参数：第一个为view的类型，随后参数就是我们关联的变量类型。
+
+目的就是可以自定义任意形式的属性适配器。
+
+我们之前还讲了BaseObservable类 和 @Bindable
+使用类继承BaseObservable后，然后在属性的前面标记为@Bindable，这个属性则是可以通知的。通过使用 notifyPropertyChanged(BR.age);向界面通知。 参数就是这个属性对应的值。
+
+回顾完成，我们看到了这个现在做的是数据更改，通知给view，没有一个view上面输入数据后，反馈给数据这边。因此我们这节解决这个问题。
+我们一起看步骤：
+1 setAge函数
+![](http://upload-images.jianshu.io/upload_images/1603789-b54210d0d8ceca0c?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+这里我们多了一个条件判断，判断如果没有变化，停止设置text，原因是如果不设置，因为设置text会引起文本改变回调，回调回来又设置文本，又引起文本改变，继续回调，造成无限循环。
+
+2 再加一个标记适配器
+![](http://upload-images.jianshu.io/upload_images/1603789-60762137a21f3523?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+参数注意，第二个参数要求是这个InverseBindingListener，原因是我们作为双向通讯，这个作为桥梁。这里我们使用检测文本改变，然后调用 ageAttrChanged.onChange();即可。
+
+3 牵线搭桥
+![](http://upload-images.jianshu.io/upload_images/1603789-0c0ee6a6564dfeb8?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+关键的标注来了。@InverseBindingAdapter，两个参数，属性 和事件。事件后面的值和上面2里面的标注适配器值一样。
+
+这里我们停一下，思考下，两个适配器![](http://upload-images.jianshu.io/upload_images/1603789-5ef5d7a775de1c3d?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)![](http://upload-images.jianshu.io/upload_images/1603789-b6a5bb0c1c230a41?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)和一个关联![](http://upload-images.jianshu.io/upload_images/1603789-850b4adacca173b5?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)它的逻辑思路是：
+适配器ageAttrChanged 来完成TextView的注册文本改变消息处理。里面使用onChange()调用。
+关联的来处理onChange（）的内部实现，返回值就是你的变量类型。
+4 临门一脚
+![](http://upload-images.jianshu.io/upload_images/1603789-9d92889624028a5e?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)改变@ 为 @= ，变为双向方式
+如此一来，达到view的数据变化，传递给数据这边。我们之前讲过如何将数据通知给view。这两个组合起来，则完成了双向通讯。
+5 验证
+![](http://upload-images.jianshu.io/upload_images/1603789-eec82f764f86795b?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+这里先设置为28，然后在post里面做文本变更，通知到数据那边，然后数据那边设置一下，反馈给界面验证。
+
+这里为什么用post呢？原因是binding内部处理数据是个异步的，所以当前这个消息队列里面，如果我们修改文本，因为文本改变回调还没注册呢，导致数据那边没同步了。（当然实际使用中这个情况很少的啦。）
+
+6代码
+https://github.com/luxiaoming/MVVMDemo
+
+android MVVM开发模式（五）
+上一讲我们说了@InverseBindingAdapter标记的事情。通过这个，我们可以实现view向数据方向的传递。从而实现真正的双向绑定。
+已经讲了这么多，核心的知识点基本完成，要每个细节去说，估计十几节讲不完了，因此我们再来看下一个核心内容，结束本系列教程。如果使用中有任何疑问，欢迎沟通交流。
+我们前面讲过，@BindingAdapter 实现的函数必须是静态的。那它不能是非静态的吗？答案是可以的。
+这个需求的出现是因为 我们有时会想在两种情况下，一个属性出现两种表现逻辑代码，这个主要的需求便是 正常流程 和测试模式，测试下可以模拟一条线路，不必走我们正常流程下的数据，可以直接提供测试数据，来测试代码。
+当然，如果我们使用一个属性，来改变界面颜色搭配。那么实现两个同一属性的方法，配置不同的颜色，通过设置使用哪个代码，可以达到换肤的效果啦。
+我们看下怎么操作的。
+移除掉User里面的@BindingAdapter @InverseBindingAdapter 的方法，原因是我们要给这个属性使用两组实现。
+
+1 实现一个抽象类。
+![](http://upload-images.jianshu.io/upload_images/1603789-62630c73aceb12ba?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+这里有个问题，本来按照我们的理解，@InverseBindingAdapter注解的函数方法，应该也是可以非静态的（我们想使用测试时候反馈和正常反馈有些差异，然而当前data-binding不允许这个为非静态~~~~。这个我看了生成代码，是完全可以做到为非静态的，所以不解为什么系统当前不支持。）
+
+我们定义了两个抽象的属性适配，没有实现代码。
+
+2 我们实现它
+![](http://upload-images.jianshu.io/upload_images/1603789-ef73020a427f33b8?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+这里继承它，实现两个抽象方法。
+
+3 实现DataBindingComponent接口
+![](http://upload-images.jianshu.io/upload_images/1603789-0d09a5a327a0865c?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+在我们做了上面的动作，具体指的是@BindingAdapter实现的方法是非静态的时候，那么我们肯定需要一个对应实例的吧。因此data-binding帮你将你需要写的方法生成了一个接口，让你去实现它就行了。（很智能化吧。）
+
+我们实现它，返回一个适配器就可以了。在这里我们就可以清晰地看到，这个返回的我们可以定制的。如果我们多个继承了BaseAdapter类，比如OptionAdapter 和OptionAdapter2 ，我们这里可以再写一个组件，返回OptionAdapter2，在我们的代码里面依据情况使用不同的组件。
+
+4 使用它
+![](http://upload-images.jianshu.io/upload_images/1603789-940c0e8477734a6c?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+这里关键点，最后一个参数。将我们的组件实例传递给它。这样子生成的绑定里面，才能依据这个找到真正实现属性对应方法的实例，然后调用。
+
+我们可以看到绑定的实现里面，做了这个动作。![](http://upload-images.jianshu.io/upload_images/1603789-e195a685fc3b5f8d?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+mBindingComponent 是我们传递进来的，这里使用它的getBaseAdapter后再调用方法了。 所以我们通过传递不同的BindingComponent ，来实现同一属性多个实现方法了。
+
+5 代码地址
+https://github.com/luxiaoming/MVVMDemo
+![](http://upload-images.jianshu.io/upload_images/1603789-4c3affbc6acdca9d?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
